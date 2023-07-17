@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import {
   Modal,
   ModalOverlay,
@@ -15,6 +16,10 @@ import {
 import React, { useState } from 'react';
 import { useMoralis } from 'react-moralis';
 import Moralis from 'moralis-v1';
+//import { Web3Auth } from "@web3auth/modal";
+//@ts-ignore
+import Web3AuthConnector from './web3AuthConnector';
+
 
 interface AuthenticateModalProps {
   isOpen: boolean;
@@ -26,7 +31,21 @@ export const AuthenticateModal = ({ isOpen, onClose }: AuthenticateModalProps) =
 
   const [authError, setAuthError] = useState<null | Error>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+/*
+  const handleAuth2 = async (provider: 'metamask' | 'walletconnect' | 'magicLink' | 'web3Auth' = 'metamask') => {
+    //Initialize within your constructor
+    const web3auth = new Web3Auth({
+    clientId: process.env.REACT_WEB3AUTH_CLIENT_ID!, // Get your Client ID from Web3Auth Dashboard
+    chainConfig: {
+      chainNamespace: "eip155",
+      chainId: "0x1", // Please use 0x5 for Goerli Testnet
+    },
+  });
 
+  await web3auth.initModal();
+  await web3auth.connect();
+  }
+*/
   /**
    * 1) Connect to a Evm
    * 2) Request message to sign using the Moralis Auth Api of moralis (handled on server)
@@ -36,10 +55,19 @@ export const AuthenticateModal = ({ isOpen, onClose }: AuthenticateModalProps) =
     try {
       setAuthError(null);
       setIsAuthenticating(true);
-
+      console.log(process.env.REACT_WEB3AUTH_CLIENT_ID)
       // Enable web3 to get user address and chain
-      await enableWeb3({ throwOnError: true, provider });
+      await enableWeb3({ 
+        throwOnError: true, 
+        //provider, 
+        //@ts-ignore
+        connector: Web3AuthConnector,
+        //@ts-ignore
+        chainId: "0x1",  // add this line
+        clientId: process.env.REACT_APP_WEB3AUTH_CLIENT_ID
+      });
       const { account, chainId } = Moralis;
+      console.log(chainId)
 
       if (!account) {
         throw new Error('Connecting to chain failed, as no connected account was found');
@@ -59,7 +87,16 @@ export const AuthenticateModal = ({ isOpen, onClose }: AuthenticateModalProps) =
       await authenticate({
         signingMessage: message,
         throwOnError: true,
+        //provider: provider,
+        //@ts-ignore
+        connector: Web3AuthConnector,
+        clientId: process.env.REACT_APP_WEB3AUTH_CLIENT_ID,
       });
+      
+    
+      console.log(Moralis.connector)
+      console.log(await Moralis.connector.getUser())
+
       onClose();
     } catch (error) {
       setAuthError(error);
